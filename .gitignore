@@ -1,0 +1,62 @@
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Native/build artifacts
+*.so
+.Python
+build/
+dist/
+wheels/
+*.egg-info/
+*.egg
+MANIFEST
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# uv and package/tool caches
+.uv-cache/
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+.pyre/
+.pytype/
+.coverage
+.coverage.*
+htmlcov/
+
+# Test and notebook artifacts
+.tox/
+.nox/
+.hypothesis/
+.ipynb_checkpoints/
+
+# Logs and local run output
+*.log
+logs/
+tmp/
+temp/
+outputs/
+runs/
+.codex
+
+# Editor and IDE files
+.vscode/
+.idea/
+*.code-workspace
+
+# macOS and system files
+.DS_Store
+Thumbs.db
