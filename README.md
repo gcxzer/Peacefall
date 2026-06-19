@@ -1,6 +1,6 @@
 # 平安夜
 
-平安夜是一个多 agent 狼人杀项目。当前优先实现 6 人经典版型，运行时会从数字人配置中选用所需玩家 agent 完成身份分配、夜晚行动、白天发言、投票和胜负结算。
+平安夜是一个多 agent 狼人杀项目。当前仅实现 6 人经典版型。
 
 ## 当前版型
 
@@ -47,11 +47,3 @@ uv run python main.py --agent-names 沈澈,陆星野 --seed 1
 
 每局游戏会生成独立的 JSONL 消息日志，默认写入 `logs/messages-时间戳.jsonl`。日志记录 agent 输入输出、公开消息、工具结果和私聊消息，不记录 system prompt。
 
-`logs/` 属于本地运行输出，默认不提交到 Git。
-
-## 开发约定
-
-- 新版型优先放在 `src/role_set_engines/` 下作为独立模块。
-- 通用逻辑放在 `src/engine/`，不要写进某个具体版型。
-- prompt 内容放在 `src/prompts/`，agent 可读取的知识文档放在 `docs/`。
-- 数字人定义放在根目录 `agents/`，不要和运行时 LangChain agent 混在一起。
