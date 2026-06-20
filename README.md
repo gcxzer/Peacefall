@@ -47,3 +47,5 @@ uv run python main.py --agent-names 沈澈,陆星野 --seed 1
 
 每局游戏会生成独立的 JSONL 消息日志，默认写入 `logs/messages-时间戳.jsonl`。日志记录 agent 输入输出、公开消息、工具结果和私聊消息，不记录 system prompt。
 
+示例产出放在 `examples/logs/20260620-133318/`：`messages/` 里是完整 JSONL 消息流水，`audio/` 里是对应的 TTS 音频和 `manifest.jsonl`。
+
