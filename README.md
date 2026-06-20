@@ -19,7 +19,7 @@
 - `docs/`：给 agent 读取的背景知识、版型说明和法官流程。
 - `src/agents/`：读取数字人配置，创建模型和 LangChain agents。
 - `src/engine/`：跨版型复用的游戏状态、身份分配、消息记录、agent 调用和通用结算工具。
-- `src/model_providers/`：OpenAI、DeepSeek、Codex 模型接入。
+- `src/model_providers/`：阿里云百炼、OpenAI、DeepSeek、Codex 模型接入。
 - `src/prompts/`：prompt 模板和 prompt 组装逻辑。
 - `src/role_set_engines/`：具体版型的游戏流程实现。
 - `src/roles/`：角色、阵营和版型定义。
@@ -39,13 +39,29 @@ uv run python main.py --list-agents
 uv run python main.py --agent-names 沈澈,陆星野 --seed 1
 ```
 
-6 人版型会从 `agents/` 数字人池中抽取 6 名玩家。可以完全随机，也可以用
-`--agent-names` 指定任意数量的数字人，剩余座位会从池子里随机补齐。指定顺序就是
-本局入座顺序。
+6 人版型会从 `agents/` 数字人池中抽取 6 名玩家。可以完全随机，也可以用`--agent-names` 指定任意数量的数字人，剩余座位会从池子里随机补齐。指定顺序就是本局入座顺序。
+
 
 ## 日志
 
-每局游戏会生成独立的 JSONL 消息日志，默认写入 `logs/messages-时间戳.jsonl`。日志记录 agent 输入输出、公开消息、工具结果和私聊消息，不记录 system prompt。
+每局游戏会生成独立的 JSONL 消息日志，默认写入 `logs/messages/messages-时间戳.jsonl`。日志记录 agent 输入输出、公开消息、工具结果和私聊消息。
 
-示例产出放在 `examples/logs/20260620-133318/`：`messages/` 里是完整 JSONL 消息流水，`audio/` 里是对应的 TTS 音频和 `manifest.jsonl`。
+仓库里的 `examples/logs/20260620-133318/` 放了一份示例产出：`messages/` 里是完整 JSONL 消息流水，`audio/` 里是对应的 TTS 音频和 `manifest.jsonl`。
 
+## 语音合成
+
+可以用阿里云百炼 Qwen3-TTS 为玩家白天公开发言生成语音：
+
+```bash
+uv run python main.py --tts aliyun-qwen --tts-include-judge
+```
+
+需要在 `.env` 中配置 `DASHSCOPE_API_KEY`。
+
+推荐的 TTS 配置：
+
+```env
+DASHSCOPE_API_KEY=你的百炼 API Key
+ALIYUN_TTS_MODEL=qwen3-tts-vd-2026-01-26
+ALIYUN_VOICE_DESIGN_MODEL=qwen-voice-design
+```

@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from engine.state import GameState
 
 
-DEFAULT_MESSAGE_LOG_DIR = Path("logs")
+DEFAULT_MESSAGE_LOG_DIR = Path("logs/messages")
 ENGINE_SPEAKER = "游戏引擎"
 JUDGE_SPEAKER = "法官"
 SYSTEM_SPEAKER = "系统"

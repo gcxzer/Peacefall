@@ -556,7 +556,7 @@ def _resolve_day_vote(
     """结算白天投票并公开结果。"""
 
     vote_summary = "、".join(
-        f"{agents.player_label(voter_id)}->{agents.player_label(target_id)}"
+        f"{agents.player_label(voter_id)}投票给{agents.player_label(target_id)}"
         for voter_id, target_id in sorted(votes.items())
     )
     record_public(

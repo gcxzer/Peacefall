@@ -23,7 +23,7 @@ def create_openai_chat_model(config: ModelProviderConfig) -> Any:
     if config.use_responses_api:
         kwargs["use_responses_api"] = True
 
-    api_key = os.environ.get("OPENAI_API_KEY", "").strip()
+    api_key = os.getenv("OPENAI_API_KEY", "").strip()
     if api_key:
         kwargs["api_key"] = api_key
 

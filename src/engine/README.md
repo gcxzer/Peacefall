@@ -7,6 +7,7 @@
 - `assignments.py`：身份分配数据结构和随机分配函数。
 - `state.py`：一局游戏的基础可变状态，例如轮次、存活玩家、公开记录、私有记录。
 - `message_log.py`：消息流水数据结构、发言人常量、JSONL 文件写入和统一记录入口。
+- `message_listeners.py`：组合多个消息监听器，并保留模型流式输出能力标记。
 - `live_logging.py`：终端实时日志、模型流式输出上下文和 delta 输出。
 - `agent_io.py`：调用 agent、法官公告、记录输入输出、解析 JSON 回复。
 - `rules.py`：目标编号校验、投票胜出计算和通用玩家文本格式化。

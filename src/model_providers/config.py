@@ -7,24 +7,45 @@ from typing import Any
 
 
 OPENAI_PROVIDER = "openai"
+ALIYUN_PROVIDER = "aliyun"
 DEEPSEEK_PROVIDER = "deepseek"
 CODEX_PROVIDER = "codex"
-DEFAULT_PROVIDER = DEEPSEEK_PROVIDER
+DEFAULT_PROVIDER = ALIYUN_PROVIDER
 
 DEFAULT_MODELS = {
+    ALIYUN_PROVIDER: "qwen3.7-plus",
     OPENAI_PROVIDER: "gpt-5.4",
     DEEPSEEK_PROVIDER: None,
     CODEX_PROVIDER: "gpt-5.4",
 }
 
 DEFAULT_THINKING = {
+    ALIYUN_PROVIDER: None,
     OPENAI_PROVIDER: None,
     DEEPSEEK_PROVIDER: None,
     CODEX_PROVIDER: "xhigh",
 }
 
+DEFAULT_TIMEOUTS = {
+    ALIYUN_PROVIDER: 180.0,
+    OPENAI_PROVIDER: 60.0,
+    DEEPSEEK_PROVIDER: 60.0,
+    CODEX_PROVIDER: 60.0,
+}
+
+DEFAULT_MAX_RETRIES = {
+    ALIYUN_PROVIDER: 3,
+    OPENAI_PROVIDER: 2,
+    DEEPSEEK_PROVIDER: 2,
+    CODEX_PROVIDER: 2,
+}
+
 PROVIDER_ALIASES = {
     "api-key": OPENAI_PROVIDER,
+    "bailian": ALIYUN_PROVIDER,
+    "dashscope": ALIYUN_PROVIDER,
+    "qwen": ALIYUN_PROVIDER,
+    ALIYUN_PROVIDER: ALIYUN_PROVIDER,
     "openai-api-key": OPENAI_PROVIDER,
     OPENAI_PROVIDER: OPENAI_PROVIDER,
     DEEPSEEK_PROVIDER: DEEPSEEK_PROVIDER,
@@ -58,27 +79,65 @@ class ModelProviderConfig:
         load_env_files()
         resolved_provider = normalize_provider(
             provider
-            or _env_text("PINGAN_YE_PROVIDER")
-            or _env_text("LLM_PROVIDER")
+            or os.getenv("PINGAN_YE_PROVIDER", "").strip()
+            or os.getenv("LLM_PROVIDER", "").strip()
             or DEFAULT_PROVIDER
         )
+
+        timeout = DEFAULT_TIMEOUTS[resolved_provider]
+        timeout_text = os.getenv("PINGAN_YE_LLM_TIMEOUT", "").strip()
+        if resolved_provider == ALIYUN_PROVIDER:
+            timeout_text = (
+                os.getenv("ALIYUN_LLM_TIMEOUT", "").strip()
+                or os.getenv("DASHSCOPE_LLM_TIMEOUT", "").strip()
+                or timeout_text
+            )
+        if timeout_text:
+            try:
+                timeout = float(timeout_text)
+            except ValueError:
+                pass
+
+        max_retries = DEFAULT_MAX_RETRIES[resolved_provider]
+        max_retries_text = os.getenv("PINGAN_YE_LLM_MAX_RETRIES", "").strip()
+        if resolved_provider == ALIYUN_PROVIDER:
+            max_retries_text = (
+                os.getenv("ALIYUN_LLM_MAX_RETRIES", "").strip()
+                or os.getenv("DASHSCOPE_LLM_MAX_RETRIES", "").strip()
+                or max_retries_text
+            )
+        if max_retries_text:
+            try:
+                max_retries = int(max_retries_text)
+            except ValueError:
+                pass
+
+        resolved_temperature = temperature
+        temperature_text = os.getenv("PINGAN_YE_LLM_TEMPERATURE", "").strip()
+        if resolved_temperature is None and temperature_text:
+            try:
+                resolved_temperature = float(temperature_text)
+            except ValueError:
+                pass
+
+        use_responses_api = True
+        use_responses_api_text = os.getenv("PINGAN_YE_USE_RESPONSES_API", "").strip().lower()
+        if use_responses_api_text:
+            use_responses_api = use_responses_api_text in {"1", "true", "yes", "on"}
+
         return cls(
             provider=resolved_provider,
             model=_resolve_model(resolved_provider, model),
-            timeout=_env_float("PINGAN_YE_LLM_TIMEOUT", 60.0),
-            max_retries=_env_int("PINGAN_YE_LLM_MAX_RETRIES", 2),
-            temperature=(
-                temperature
-                if temperature is not None
-                else _env_optional_float("PINGAN_YE_LLM_TEMPERATURE")
-            ),
+            timeout=timeout,
+            max_retries=max_retries,
+            temperature=resolved_temperature,
             thinking=(
                 _normalize_thinking(thinking)
                 if thinking is not None
                 else _provider_thinking_from_env(resolved_provider)
             )
             or DEFAULT_THINKING[resolved_provider],
-            use_responses_api=_env_bool("PINGAN_YE_USE_RESPONSES_API", True),
+            use_responses_api=use_responses_api,
             options=_provider_options_from_env(resolved_provider),
         )
 
@@ -103,16 +162,28 @@ def load_env_files() -> None:
 
 
 def _provider_model_from_env(provider: str) -> str:
+    if provider == ALIYUN_PROVIDER:
+        return (
+            os.getenv("ALIYUN_MODEL", "").strip()
+            or os.getenv("DASHSCOPE_MODEL", "").strip()
+            or os.getenv("PINGAN_YE_MODEL", "").strip()
+        )
     if provider == DEEPSEEK_PROVIDER:
         return (
-            _env_text("PINGAN_YE_DEEPSEEK_MODEL")
-            or _env_text("DEEPSEEK_MODEL")
-            or _env_text("MODEL_NAME")
-            or _env_text("PINGAN_YE_MODEL")
+            os.getenv("PINGAN_YE_DEEPSEEK_MODEL", "").strip()
+            or os.getenv("DEEPSEEK_MODEL", "").strip()
+            or os.getenv("MODEL_NAME", "").strip()
+            or os.getenv("PINGAN_YE_MODEL", "").strip()
         )
     if provider == CODEX_PROVIDER:
-        return _env_text("CODEX_MODEL") or _env_text("PINGAN_YE_MODEL")
-    return _env_text("OPENAI_MODEL") or _env_text("PINGAN_YE_MODEL")
+        return os.getenv("CODEX_MODEL", "").strip() or os.getenv(
+            "PINGAN_YE_MODEL",
+            "",
+        ).strip()
+    return os.getenv("OPENAI_MODEL", "").strip() or os.getenv(
+        "PINGAN_YE_MODEL",
+        "",
+    ).strip()
 
 
 def _resolve_model(provider: str, explicit_model: str | None) -> str:
@@ -123,8 +194,8 @@ def _resolve_model(provider: str, explicit_model: str | None) -> str:
     )
     if not model:
         raise ValueError(
-            "DeepSeek model is not configured. Set MODEL_NAME, DEEPSEEK_MODEL, "
-            "PINGAN_YE_DEEPSEEK_MODEL, or PINGAN_YE_MODEL in .env."
+            f"{provider} model is not configured. Set a provider-specific model "
+            "or PINGAN_YE_MODEL in .env."
         )
     return model
 
@@ -132,38 +203,53 @@ def _resolve_model(provider: str, explicit_model: str | None) -> str:
 def _provider_thinking_from_env(provider: str) -> str | None:
     if provider == CODEX_PROVIDER:
         return _normalize_thinking(
-            _env_text("CODEX_THINKING") or _env_text("PINGAN_YE_THINKING")
+            os.getenv("CODEX_THINKING", "").strip()
+            or os.getenv("PINGAN_YE_THINKING", "").strip()
         )
     if provider == OPENAI_PROVIDER:
         return _normalize_thinking(
-            _env_text("OPENAI_REASONING_EFFORT")
-            or _env_text("OPENAI_THINKING")
-            or _env_text("PINGAN_YE_THINKING")
+            os.getenv("OPENAI_REASONING_EFFORT", "").strip()
+            or os.getenv("OPENAI_THINKING", "").strip()
+            or os.getenv("PINGAN_YE_THINKING", "").strip()
         )
     if provider == DEEPSEEK_PROVIDER:
-        return _env_text("DEEPSEEK_THINKING") or None
-    return _normalize_thinking(_env_text("PINGAN_YE_THINKING"))
+        return os.getenv("DEEPSEEK_THINKING", "").strip() or None
+    if provider == ALIYUN_PROVIDER:
+        return os.getenv("ALIYUN_THINKING", "").strip() or None
+    return _normalize_thinking(os.getenv("PINGAN_YE_THINKING", "").strip())
 
 
 def _provider_options_from_env(provider: str) -> dict[str, Any]:
     options: dict[str, Any] = {}
 
     if provider == CODEX_PROVIDER:
-        auth_path = _env_text("PINGAN_YE_CODEX_AUTH_PATH") or _env_text(
-            "CODEX_AUTH_PATH"
-        )
+        auth_path = os.getenv("PINGAN_YE_CODEX_AUTH_PATH", "").strip() or os.getenv(
+            "CODEX_AUTH_PATH",
+            "",
+        ).strip()
         if auth_path:
             options["auth_path"] = auth_path
-        base_url = _env_text("PINGAN_YE_CODEX_BASE_URL")
+        base_url = os.getenv("PINGAN_YE_CODEX_BASE_URL", "").strip()
         if base_url:
             options["base_url"] = base_url
 
     if provider == DEEPSEEK_PROVIDER:
-        base_url = _env_text("PINGAN_YE_DEEPSEEK_BASE_URL") or _env_text(
-            "DEEPSEEK_BASE_URL"
-        ) or _env_text("BASE_URL")
+        base_url = (
+            os.getenv("PINGAN_YE_DEEPSEEK_BASE_URL", "").strip()
+            or os.getenv("DEEPSEEK_BASE_URL", "").strip()
+            or os.getenv("BASE_URL", "").strip()
+        )
         if base_url:
             options["base_url"] = base_url
+
+    if provider == ALIYUN_PROVIDER:
+        options["base_url"] = (
+            os.getenv("ALIYUN_BASE_URL", "").strip()
+            or os.getenv("DASHSCOPE_BASE_URL", "").strip()
+            or "https://dashscope.aliyuncs.com/compatible-mode/v1"
+        )
+        enable_thinking = os.getenv("ALIYUN_ENABLE_THINKING", "").strip().lower()
+        options["enable_thinking"] = enable_thinking in {"1", "true", "yes", "on"}
 
     return options
 
@@ -200,44 +286,3 @@ def _normalize_thinking(value: str | None) -> str | None:
             f"{value!r}. Use none, minimal, low, medium, high, or xhigh."
         )
     return normalized
-
-
-def _env_text(name: str) -> str:
-    return os.environ.get(name, "").strip()
-
-
-def _env_float(name: str, default: float) -> float:
-    value = _env_text(name)
-    if not value:
-        return default
-    try:
-        return float(value)
-    except ValueError:
-        return default
-
-
-def _env_optional_float(name: str) -> float | None:
-    value = _env_text(name)
-    if not value:
-        return None
-    try:
-        return float(value)
-    except ValueError:
-        return None
-
-
-def _env_int(name: str, default: int) -> int:
-    value = _env_text(name)
-    if not value:
-        return default
-    try:
-        return int(value)
-    except ValueError:
-        return default
-
-
-def _env_bool(name: str, default: bool) -> bool:
-    value = _env_text(name).lower()
-    if not value:
-        return default
-    return value in {"1", "true", "yes", "on"}

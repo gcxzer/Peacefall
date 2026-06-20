@@ -26,6 +26,11 @@ class AgentModelProfile:
 class DigitalHumanProfile:
     """数字人的人设、表达方式和行为倾向。"""
 
+    core_identity: dict[str, Any] = field(default_factory=dict)
+    behavioral_traits: dict[str, Any] = field(default_factory=dict)
+    linguistic_profile: dict[str, Any] = field(default_factory=dict)
+    strategic_gameplay: dict[str, Any] = field(default_factory=dict)
+    thought_process_and_examples: dict[str, Any] = field(default_factory=dict)
     summary: str = ""
     task_personality: str = ""
     table_presence: str = ""
@@ -34,6 +39,30 @@ class DigitalHumanProfile:
     strengths: list[str] = field(default_factory=list)
     weaknesses: list[str] = field(default_factory=list)
     speech_examples: list[str] = field(default_factory=list)
+
+    @property
+    def has_structured_profile(self) -> bool:
+        """判断是否使用新版分块数字人结构。"""
+
+        return any(
+            (
+                self.core_identity,
+                self.behavioral_traits,
+                self.linguistic_profile,
+                self.strategic_gameplay,
+                self.thought_process_and_examples,
+            )
+        )
+
+    def speech_example_texts(self) -> list[str]:
+        """返回可作为语气参考的自然发言示例。"""
+
+        examples = self.thought_process_and_examples.get("speech_examples")
+        if isinstance(examples, dict):
+            return [str(value) for value in examples.values() if str(value).strip()]
+        if isinstance(examples, list):
+            return [str(value) for value in examples if str(value).strip()]
+        return list(self.speech_examples)
 
 
 @dataclass(frozen=True, slots=True)
@@ -57,6 +86,40 @@ class AgentProfile:
 
     def prompt_context(self) -> str:
         """把数字人配置格式化成玩家 prompt 段落。"""
+
+        if self.digital_human.has_structured_profile:
+            return self._structured_prompt_context()
+        return self._legacy_prompt_context()
+
+    def _structured_prompt_context(self) -> str:
+        """把新版分块数字人配置格式化成玩家 prompt 段落。"""
+
+        sections = [
+            "数字人设定：",
+            f"- 名字：{self.display_name}",
+        ]
+        section_specs = (
+            ("核心身份", self.digital_human.core_identity),
+            ("行为特征", self.digital_human.behavioral_traits),
+            ("语言风格", self.digital_human.linguistic_profile),
+            ("局内策略", self.digital_human.strategic_gameplay),
+            ("思考流程与示例", self.digital_human.thought_process_and_examples),
+        )
+        for title, payload in section_specs:
+            if payload:
+                sections.append(f"{title}：")
+                sections.extend(_format_profile_value(payload, indent=1))
+        if self.game_task:
+            sections.append("局内任务偏好：")
+            for key, value in self.game_task.items():
+                sections.append(f"- {_profile_label(key)}：{value}")
+        if self.constraints:
+            sections.append("行为边界：")
+            sections.extend(f"- {constraint}" for constraint in self.constraints)
+        return "\n".join(section for section in sections if section.strip())
+
+    def _legacy_prompt_context(self) -> str:
+        """把旧版扁平数字人配置格式化成玩家 prompt 段落。"""
 
         sections = [
             "数字人设定：",
@@ -227,6 +290,27 @@ def _load_agent_profile(path: Path) -> AgentProfile:
             thinking=_optional_text(model_data.get("thinking")),
         ),
         digital_human=DigitalHumanProfile(
+            core_identity=_optional_dict(human_data.get("core_identity"), path, "core_identity"),
+            behavioral_traits=_optional_dict(
+                human_data.get("behavioral_traits"),
+                path,
+                "behavioral_traits",
+            ),
+            linguistic_profile=_optional_dict(
+                human_data.get("linguistic_profile"),
+                path,
+                "linguistic_profile",
+            ),
+            strategic_gameplay=_optional_dict(
+                human_data.get("strategic_gameplay"),
+                path,
+                "strategic_gameplay",
+            ),
+            thought_process_and_examples=_optional_dict(
+                human_data.get("thought_process_and_examples"),
+                path,
+                "thought_process_and_examples",
+            ),
             summary=str(human_data.get("summary", "")),
             task_personality=str(human_data.get("task_personality", "")),
             table_presence=str(human_data.get("table_presence", "")),
@@ -269,6 +353,16 @@ def _dict_value(data: dict[str, Any], key: str, path: Path) -> dict[str, Any]:
     return value
 
 
+def _optional_dict(value: Any, path: Path, key: str) -> dict[str, Any]:
+    """读取可选 dict 字段并做类型校验。"""
+
+    if value is None:
+        return {}
+    if not isinstance(value, dict):
+        raise ValueError(f"{path} field {key!r} must be object")
+    return dict(value)
+
+
 def _string_list(value: Any, path: Path, key: str) -> list[str]:
     """读取字符串列表字段并做类型校验。"""
 
@@ -292,3 +386,73 @@ def _optional_float(value: Any) -> float | None:
     if value is None:
         return None
     return float(value)
+
+
+PROFILE_LABELS = {
+    "anti_AI_guidelines": "反 AI 腔约束",
+    "archetype": "角色原型",
+    "behavioral_traits": "行为特征",
+    "catching_logic_leap": "抓逻辑跳步示例",
+    "cold_humor_comment": "冷幽默示例",
+    "core_identity": "核心身份",
+    "core_motivation": "核心动机",
+    "data_driven_deduction": "数据反推示例",
+    "defending_against_accusation": "被攻击时防守示例",
+    "front_position_conservative": "前置位保守发言示例",
+    "inner_monologue_guideline": "隐性思考指引",
+    "interaction_dynamics": "互动动态",
+    "linguistic_profile": "语言风格",
+    "situational_responses": "局势反应",
+    "speaking_style": "说话风格",
+    "speech_examples": "自然发言示例",
+    "speech_habits": "说话习惯",
+    "strategic_gameplay": "局内策略",
+    "strengths": "擅长",
+    "table_presence": "场上存在感",
+    "task_personality": "任务个性",
+    "thought_process_and_examples": "思考流程与示例",
+    "to_aggressive_players": "面对强势玩家",
+    "to_logical_players": "面对逻辑玩家",
+    "vibe": "整体气质",
+    "weaknesses": "弱点",
+    "when_accused": "被攻击时",
+    "when_interrupted": "被打断时",
+    "when_playing_good": "拿好人身份时",
+    "when_playing_werewolf": "拿狼人身份时",
+}
+
+
+def _format_profile_value(value: Any, *, indent: int = 0) -> list[str]:
+    """把嵌套数字人配置格式化成 prompt 行。"""
+
+    prefix = "  " * indent + "- "
+    child_indent = indent + 1
+    if isinstance(value, dict):
+        lines: list[str] = []
+        for key, item in value.items():
+            label = _profile_label(str(key))
+            if isinstance(item, dict):
+                lines.append(f"{prefix}{label}：")
+                lines.extend(_format_profile_value(item, indent=child_indent))
+            elif isinstance(item, list):
+                lines.append(f"{prefix}{label}：")
+                lines.extend(_format_profile_value(item, indent=child_indent))
+            else:
+                text = str(item).strip()
+                if text:
+                    lines.append(f"{prefix}{label}：{text}")
+        return lines
+    if isinstance(value, list):
+        return [
+            f"{prefix}{str(item).strip()}"
+            for item in value
+            if str(item).strip()
+        ]
+    text = str(value).strip()
+    return [f"{prefix}{text}"] if text else []
+
+
+def _profile_label(key: str) -> str:
+    """把数字人配置字段名转换成 prompt 里更自然的中文标签。"""
+
+    return PROFILE_LABELS.get(key, key)

@@ -50,7 +50,7 @@ def runtime_codex_credentials(*, auth_path: Any = None) -> CodexCredentials:
 def codex_auth_path(value: Any = None) -> Path:
     if value:
         return Path(str(value)).expanduser()
-    override = os.environ.get("PINGAN_YE_CODEX_AUTH_PATH", "").strip()
+    override = os.getenv("PINGAN_YE_CODEX_AUTH_PATH", "").strip()
     if override:
         return Path(override).expanduser()
     return Path.home() / ".codex" / "auth.json"

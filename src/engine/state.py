@@ -12,9 +12,6 @@ from engine.rules import format_player_ids
 from roles import Camp, Role, role_camp
 
 
-PUBLIC_LOG_LIMIT = 30
-
-
 @dataclass(slots=True)
 class GameState:
     """一局游戏的可变基础状态。"""
@@ -66,7 +63,7 @@ class GameState:
         """生成所有 agent 都可以看到的公共上下文。"""
 
         recent_log = "\n".join(
-            f"- {item}" for item in self.public_log[-PUBLIC_LOG_LIMIT:]
+            f"- {item}" for item in self.public_log
         )
         return (
             f"当前轮次：第 {self.round_number} 轮\n"

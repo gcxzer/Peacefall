@@ -20,9 +20,9 @@ def create_deepseek_chat_model(config: ModelProviderConfig) -> Any:
         kwargs["temperature"] = config.temperature
 
     api_key = (
-        os.environ.get("PINGAN_YE_DEEPSEEK_API_KEY", "").strip()
-        or os.environ.get("DEEPSEEK_API_KEY", "").strip()
-        or os.environ.get("API_KEY", "").strip()
+        os.getenv("PINGAN_YE_DEEPSEEK_API_KEY", "").strip()
+        or os.getenv("DEEPSEEK_API_KEY", "").strip()
+        or os.getenv("API_KEY", "").strip()
     )
     if api_key:
         kwargs["api_key"] = api_key

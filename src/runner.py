@@ -14,9 +14,11 @@ from agents.selection import (
 )
 from engine.assignments import assign_roles
 from engine.live_logging import configure_live_logging, log_live_message
+from engine.message_listeners import combine_message_listeners
 from engine.message_log import GameRecord, MessageLogEntry
 from role_set_engines.six_player_classic import run_game
 from roles import get_role_set
+from tts import ALIYUN_QWEN_TTS_PROVIDER, create_tts_listener
 
 
 logger = logging.getLogger(__name__)
@@ -31,6 +33,10 @@ def run_game_once(
     max_rounds: int = 20,
     show_identities: bool = False,
     on_message: Callable[[MessageLogEntry], None] | None = None,
+    tts_provider: str = "off",
+    tts_output_dir: str | Path = "logs/audio",
+    tts_voice_cache_path: str | Path = "logs/aliyun-qwen-voices.json",
+    tts_include_judge: bool = False,
 ) -> GameRecord:
     """创建 agents 并运行一局游戏。"""
 
@@ -48,11 +54,23 @@ def run_game_once(
     if show_identities:
         logger.info(agents.assignment.judge_private_context())
 
-    return run_game(
-        agents,
-        max_rounds=max_rounds,
-        on_message=on_message,
+    tts_listener = create_tts_listener(
+        tts_provider,
+        agents=agents,
+        output_dir=tts_output_dir,
+        voice_cache_path=tts_voice_cache_path,
+        include_judge=tts_include_judge,
     )
+    message_listener = combine_message_listeners(on_message, tts_listener)
+    try:
+        return run_game(
+            agents,
+            max_rounds=max_rounds,
+            on_message=message_listener,
+        )
+    finally:
+        if tts_listener is not None:
+            tts_listener.close()
 
 
 def main() -> None:
@@ -72,6 +90,10 @@ def main() -> None:
         max_rounds=args.max_rounds,
         show_identities=args.show_identities,
         on_message=log_live_message,
+        tts_provider=args.tts,
+        tts_output_dir=args.tts_output_dir,
+        tts_voice_cache_path=args.tts_voice_cache,
+        tts_include_judge=args.tts_include_judge,
     )
     logger.info("message log: %s", record.message_log_path)
 
@@ -87,6 +109,10 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--agent-names", action="append", default=[], help="指定本局使用的数字人，逗号分隔；不足人数时从数字人池随机补齐。例如：--agent-names 沈澈,陆星野")
     parser.add_argument("--list-agents", action="store_true", help="列出数字人池并退出，不开始游戏。")
     parser.add_argument("--show-identities", action="store_true", help="打印完整身份分配，仅用于调试。")
+    parser.add_argument("--tts", choices=["off", ALIYUN_QWEN_TTS_PROVIDER], default="off", help="启用文字转语音。aliyun-qwen 使用百炼 qwen3-tts-vd-2026-01-26。")
+    parser.add_argument("--tts-output-dir", default="logs/audio", help="TTS 音频输出目录。")
+    parser.add_argument("--tts-voice-cache", default="logs/aliyun-qwen-voices.json", help="阿里云声音设计 voice_id 缓存文件。")
+    parser.add_argument("--tts-include-judge", action="store_true", help="同时为法官公告生成语音；默认只处理玩家白天发言。")
     return parser.parse_args()
 
 
@@ -94,7 +120,6 @@ if __name__ == "__main__":
     main()
 
 
+# 常用运行示例
 # uv run python main.py --list-agents
-# uv run python main.py --seed 1 --max-rounds 3
-# uv run python main.py --show-identities
-# uv run python main.py --agent-names 沈澈,陆星野 --seed 1
+# uv run python main.py --tts aliyun-qwen --tts-include-judge 
