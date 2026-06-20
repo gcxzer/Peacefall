@@ -66,7 +66,7 @@ PLAYER_SPEECH_INSTRUCTION = (
 
 WEREWOLF_DISCUSSION_INSTRUCTION = (
     "现在是第 {round_number} 夜狼人私聊第 {discussion_round} 轮。"
-    "基于狼聊快照、队友处境和后续白天收益，用队友商量的口吻给出刀人建议、备选目标和关键理由。"
+    "基于狼聊快照、队友处境和后续白天收益，用队友商量的口吻给出刀人建议和关键理由。注意你现在是在彼此讨论，不要重复无用的信息。"
 )
 
 
