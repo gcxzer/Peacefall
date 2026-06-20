@@ -30,16 +30,3 @@
 3. provider 默认模型。
 
 默认 provider 是 `aliyun`。
-
-## 阿里云超时配置
-
-阿里云百炼偶发响应较慢时，可能出现 `APITimeoutError: Request timed out`。阿里云 provider
-默认 timeout 是 180 秒，默认重试 3 次；也可以在 `.env` 里单独调整：
-
-```env
-ALIYUN_LLM_TIMEOUT=240
-ALIYUN_LLM_MAX_RETRIES=4
-```
-
-通用变量 `PINGAN_YE_LLM_TIMEOUT` 和 `PINGAN_YE_LLM_MAX_RETRIES` 仍然可用；如果同时设置了
-阿里云专用变量和通用变量，阿里云专用变量优先生效。

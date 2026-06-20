@@ -24,9 +24,3 @@
 - `docs/judge-flows/{role_set_id}.md`
 - 法官完整身份信息
 - 法官基础任务模板
-
-## 约定
-
-- 大段背景知识放在 `docs/`，不要写死在 Python 字符串里。
-- Python 模板只保留短、稳定、需要格式化的句子。
-- prompt builder 只负责组装，不负责游戏流程。
