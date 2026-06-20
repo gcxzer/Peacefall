@@ -533,7 +533,7 @@ def _collect_day_votes(
         payload = ask_json(
             agents.players[player_id],
             (
-                "现在进行白天投票。请从存活的其他玩家中选择一名放逐目标。\n"
+                "现在进行白天投票。请从存活的其他玩家中选择一名放逐目标。请根据自己的策略进行投票。 \n"
                 f"可选目标：{_format_player_labels(agents, valid_targets)}\n\n"
                 f"{state.player_context(player_id)}\n\n"
                 f"{TARGET_JSON_INSTRUCTION}"
