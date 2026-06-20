@@ -2,7 +2,7 @@
   "reflection": {
     "model": {
       "provider": "aliyun",
-      "name": "qwen3.7-plus",
+      "name": "qwen3.7-max",
       "temperature": null,
       "thinking": null
     }

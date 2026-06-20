@@ -254,6 +254,7 @@ def _collect_wolf_kill(
     target_id = valid_target(payload.get("target_id"), room.target_ids)
     reason = str(payload.get("reason") or "").strip()
     if target_id is None:
+        final_action = "主刀狼人没有提交有效击杀目标，本夜狼人击杀为空。"
         record_message(
             state,
             channel="wolf_chat",
@@ -262,10 +263,23 @@ def _collect_wolf_kill(
             speaker=_wolf_label(agents, room.submitter_id),
             recipient=WEREWOLF_TEAM_RECIPIENT,
             role="assistant",
-            content="主刀狼人没有提交有效击杀目标，本夜狼人击杀为空。",
+            content=final_action,
+        )
+        _append_werewolf_night_private_notes(
+            agents,
+            state,
+            room.wolf_ids,
+            wolf_chat,
+            final_action,
         )
         return None
 
+    final_action = (
+        f"{_wolf_label(agents, room.submitter_id)} 提交最终击杀："
+        f"{agents.player_label(target_id)}。"
+    )
+    if reason:
+        final_action += f"\n提交理由：{reason}"
     record_message(
         state,
         channel="wolf_chat",
@@ -281,6 +295,13 @@ def _collect_wolf_kill(
             },
             ensure_ascii=False,
         ),
+    )
+    _append_werewolf_night_private_notes(
+        agents,
+        state,
+        room.wolf_ids,
+        wolf_chat,
+        final_action,
     )
     return target_id
 
@@ -677,6 +698,25 @@ def _format_wolf_chat(messages: list[str]) -> str:
     if not messages:
         return "- 暂无"
     return "\n".join(f"- {message}" for message in messages)
+
+
+def _append_werewolf_night_private_notes(
+    agents: GameAgents,
+    state: SixPlayerClassicState,
+    wolf_ids: list[int],
+    wolf_chat: list[str],
+    final_action: str,
+) -> None:
+    """把狼人夜间行动完整记录写入参与狼聊的狼人私有记录。"""
+
+    note = (
+        f"第 {state.round_number} 夜狼人夜间行动完整记录：\n"
+        f"存活狼人：{_format_player_labels(agents, wolf_ids)}\n"
+        f"完整狼聊记录：\n{_format_wolf_chat(wolf_chat)}\n"
+        f"最终行动：{final_action}"
+    )
+    for wolf_id in wolf_ids:
+        state.private_notes[wolf_id].append(note)
 
 
 def _format_player_labels(agents: GameAgents, player_ids: list[int]) -> str:

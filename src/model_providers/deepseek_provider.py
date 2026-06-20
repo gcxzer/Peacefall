@@ -30,7 +30,23 @@ def create_deepseek_chat_model(config: ModelProviderConfig) -> Any:
     if config.options.get("base_url"):
         kwargs["base_url"] = config.options["base_url"]
 
-    if config.thinking is not None:
-        kwargs["extra_body"] = {"thinking": config.thinking}
+    thinking_options = _deepseek_thinking_options(config.thinking)
+    if thinking_options is not None:
+        kwargs.update(thinking_options)
 
     return ChatDeepSeek(**kwargs)
+
+
+def _deepseek_thinking_options(thinking: str | None) -> dict[str, Any] | None:
+    """把统一 thinking 配置转换成 DeepSeek V4 的请求参数。"""
+
+    if thinking is None:
+        return None
+    if thinking == "none":
+        return {"extra_body": {"thinking": {"type": "disabled"}}}
+
+    effort = "max" if thinking == "xhigh" else "high"
+    return {
+        "reasoning_effort": effort,
+        "extra_body": {"thinking": {"type": "enabled"}},
+    }

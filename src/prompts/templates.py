@@ -60,7 +60,9 @@ SIX_PLAYER_CLASSIC_DAY_ANNOUNCEMENT = (
 # 玩家阶段行动
 PLAYER_SPEECH_INSTRUCTION = (
     "现在轮到你白天发言。只输出你在桌上说的话。"
-    "基于公开信息、私有视角和阵营目标表达立场、怀疑或施压，不要暴露视角外信息。如果进行了投票，投票信息很关键，往往解释了阵营信息，但是也有可能被战略欺骗。"
+    "基于公开信息、私有视角和阵营目标表达立场、怀疑或施压，不要暴露视角外信息。"
+    "如果进行了投票，投票信息很关键，投票信息往往解释了阵营信息，但是也有可能被战略欺骗。"
+    "每轮游戏按法官的随机顺序执行，每人只有一次说话机会。"
 )
 
 
@@ -78,10 +80,10 @@ WEREWOLF_FINAL_KILL_INSTRUCTION = (
 
 
 # 结构化输出要求
-TARGET_JSON_INSTRUCTION = '只输出 JSON：{"target_id": 玩家编号, "reason": "简短理由，不超过150字"}'
+TARGET_JSON_INSTRUCTION = '只输出 JSON：{"target_id": 玩家编号, "reason": "简短理由，不超过150字，基于自己的身份和场上局势给出理由"}'
 
 
 WITCH_JSON_INSTRUCTION = (
     '只输出 JSON：{"use_antidote": true或false, '
-    '"poison_target_id": 玩家编号或null, "reason": "简短理由，不超过150字"}'
+    '"poison_target_id": 玩家编号或null, "reason": "简短理由，不超过150字，基于自己的身份和场上局势给出理由"}'
 )

@@ -150,6 +150,7 @@ if __name__ == "__main__":
 
 # 常用运行示例
 # uv run python main.py
+# uv run python main.py --agent-names 秦疏影,闻之遥
 # uv run python main.py --list-agents
 # uv run python main.py --reflection omniscient
 # uv run python main.py --tts aliyun-qwen --tts-include-judge
