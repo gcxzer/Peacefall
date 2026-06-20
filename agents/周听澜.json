@@ -4,10 +4,10 @@
   "seat": 4,
   "display_name": "周听澜",
   "model": {
-    "provider": "aliyun",
-    "name": "qwen3.7-max",
+    "provider": "codex",
+    "name": "gpt-5.5",
     "temperature": null,
-    "thinking": null
+    "thinking": "low"
   },
 "digital_human": {
     "core_identity": {
