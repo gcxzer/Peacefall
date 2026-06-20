@@ -1,0 +1,10 @@
+{
+  "reflection": {
+    "model": {
+      "provider": "aliyun",
+      "name": "qwen3.7-plus",
+      "temperature": null,
+      "thinking": null
+    }
+  }
+}

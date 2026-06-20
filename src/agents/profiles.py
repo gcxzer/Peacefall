@@ -10,6 +10,9 @@ from typing import Any
 
 
 DEFAULT_AGENT_CONFIG_DIR = Path("agents")
+PLAYER_AGENT_KIND = "player"
+JUDGE_AGENT_KIND = "judge"
+SUPPORTED_AGENT_KINDS = {PLAYER_AGENT_KIND, JUDGE_AGENT_KIND}
 
 
 @dataclass(frozen=True, slots=True)
@@ -87,9 +90,7 @@ class AgentProfile:
     def prompt_context(self) -> str:
         """把数字人配置格式化成玩家 prompt 段落。"""
 
-        if self.digital_human.has_structured_profile:
-            return self._structured_prompt_context()
-        return self._legacy_prompt_context()
+        return self._structured_prompt_context()
 
     def _structured_prompt_context(self) -> str:
         """把新版分块数字人配置格式化成玩家 prompt 段落。"""
@@ -117,36 +118,6 @@ class AgentProfile:
             sections.append("行为边界：")
             sections.extend(f"- {constraint}" for constraint in self.constraints)
         return "\n".join(section for section in sections if section.strip())
-
-    def _legacy_prompt_context(self) -> str:
-        """把旧版扁平数字人配置格式化成玩家 prompt 段落。"""
-
-        sections = [
-            "数字人设定：",
-            f"- 名字：{self.display_name}",
-            f"- 简介：{self.digital_human.summary}",
-            f"- 任务个性：{self.digital_human.task_personality}",
-            f"- 场上存在感：{self.digital_human.table_presence}",
-            f"- 说话风格：{self.digital_human.speaking_style}",
-        ]
-        if self.digital_human.speech_habits:
-            sections.append("- 说话习惯：" + "；".join(self.digital_human.speech_habits))
-        if self.digital_human.strengths:
-            sections.append("- 擅长：" + "；".join(self.digital_human.strengths))
-        if self.digital_human.weaknesses:
-            sections.append("- 弱点：" + "；".join(self.digital_human.weaknesses))
-        if self.digital_human.speech_examples:
-            sections.append("自然发言示例，只参考语感，不要照抄句式和口头禅：")
-            sections.extend(f"- {example}" for example in self.digital_human.speech_examples)
-        if self.game_task:
-            sections.append("局内任务偏好：")
-            for key, value in self.game_task.items():
-                sections.append(f"- {key}：{value}")
-        if self.constraints:
-            sections.append("行为边界：")
-            sections.extend(f"- {constraint}" for constraint in self.constraints)
-        return "\n".join(section for section in sections if section.strip())
-
 
 def load_player_profiles(
     player_count: int,
@@ -196,8 +167,10 @@ def load_agent_pool(
     profiles: dict[int, AgentProfile] = {}
     for path in sorted(directory.glob("*.json")):
         profile = _load_agent_profile(path)
-        if profile.kind != "player":
-            raise ValueError(f"{path} kind must be player, got {profile.kind!r}")
+        if profile.kind == JUDGE_AGENT_KIND:
+            continue
+        if profile.kind != PLAYER_AGENT_KIND:
+            raise ValueError(f"{path} kind must be one of {sorted(SUPPORTED_AGENT_KINDS)}")
         if profile.seat in profiles:
             raise ValueError(f"duplicate agent profile seat: {profile.seat}")
         profiles[profile.seat] = profile
@@ -205,6 +178,29 @@ def load_agent_pool(
     if not profiles:
         raise FileNotFoundError(f"no agent profiles found in {directory}")
     return [profiles[seat] for seat in sorted(profiles)]
+
+
+def load_judge_profile(
+    config_dir: str | Path = DEFAULT_AGENT_CONFIG_DIR,
+) -> AgentProfile | None:
+    """读取根目录 agents/*.json 里的法官配置；不存在时返回 None。"""
+
+    directory = Path(config_dir)
+    if not directory.exists() or not directory.is_dir():
+        raise FileNotFoundError(f"agent config dir not found: {directory}")
+
+    judge_profiles: list[AgentProfile] = []
+    for path in sorted(directory.glob("*.json")):
+        profile = _load_agent_profile(path)
+        if profile.kind == JUDGE_AGENT_KIND:
+            judge_profiles.append(profile)
+        elif profile.kind != PLAYER_AGENT_KIND:
+            raise ValueError(f"{path} kind must be one of {sorted(SUPPORTED_AGENT_KINDS)}")
+
+    if len(judge_profiles) > 1:
+        names = "、".join(profile.display_name for profile in judge_profiles)
+        raise ValueError(f"multiple judge profiles found: {names}")
+    return judge_profiles[0] if judge_profiles else None
 
 
 def _resolve_requested_profiles(

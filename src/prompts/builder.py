@@ -18,6 +18,7 @@ def build_player_prompt(
     *,
     display_name: str | None = None,
     digital_human_context: str = "",
+    memory_context: str = "",
 ) -> str:
     """组装玩家 agent 的完整提示词。
 
@@ -28,6 +29,7 @@ def build_player_prompt(
         _read_text(COMMON_BACKGROUND_PATH),
         _read_text(_role_set_path(role_set)),
         _optional_section(digital_human_context),
+        _optional_section(memory_context),
         _private_section(private_context),
         PLAYER_AGENT_PROMPT.format(
             player_id=player_id,
@@ -39,7 +41,12 @@ def build_player_prompt(
     return "\n\n".join(section for section in sections if section)
 
 
-def build_judge_prompt(role_set: RoleSet, private_context: str) -> str:
+def build_judge_prompt(
+    role_set: RoleSet,
+    private_context: str,
+    *,
+    digital_human_context: str = "",
+) -> str:
     """组装法官 agent 的完整提示词。
 
     法官额外读取 judge-flows 下的流程说明，并拥有完整身份表。
@@ -49,6 +56,7 @@ def build_judge_prompt(role_set: RoleSet, private_context: str) -> str:
         _read_text(COMMON_BACKGROUND_PATH),
         _read_text(_role_set_path(role_set)),
         _read_text(JUDGE_FLOWS_DIR / f"{role_set.id}.md"),
+        _optional_section(digital_human_context),
         _private_section(private_context),
         JUDGE_AGENT_PROMPT.format(
             role_set_name=role_set.name,

@@ -21,4 +21,4 @@
 - 多个版型都会用到的 agent 调用和解析逻辑。
 - 不包含具体版型规则的通用工具。
 
-这些内容应该放进 `src/role_set_engines/`。
+这些内容不应该放进 `src/engine/`，应该放进 `src/role_set_engines/`。
